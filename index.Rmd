@@ -1,0 +1,75 @@
+---
+title: "Trend of Health Expenditure by Providers In USA"
+author: "Abid Al Reza"
+date: "7/30/2020"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
+```
+
+## Data Source
+
+This presentation contains a plot created using the function `plot_ly` which depicts the trend of health care expenditure by different type care providers in USA from the year 1980 to 2014.
+
+Different type care providers include different type of establishment delivering care (hospitals, physicians and clinics, nursing homes, etc.) and medical products (prescription drugs, over-the-counter medicines, and sundries and for durable medical products such as eyeglasses and hearing aids) purchased in retail outlets.
+
+
+The data was collected from [here](https://www.cms.gov/Research-Statistics-Data-and-Systems/Statistics-Trends-and-Reports/NationalHealthExpendData/NationalHealthAccountsStateHealthAccountsProvider).
+
+```{r data processing}
+# library loading
+if(!require(dplyr)){install.packages('dplyr')}; library(dplyr)
+if(!require(tidyr)){install.packages('tidyr')}; library(tidyr)
+if(!require(plotly)){install.packages('plotly')}; library(plotly)
+
+# data download and loading
+url <- "https://www.cms.gov/Research-Statistics-Data-and-Systems/Statistics-Trends-and-Reports/NationalHealthExpendData/Downloads/provider-state-estimates.zip"
+temp <- tempfile()
+download.file(url, temp)
+mydata <- read.csv(unz(temp, "PROV_US_AGGREGATE14.CSV"), header = TRUE)
+unlink(temp)
+
+# data processing 
+mydata1<- mydata %>% 
+    filter(Group == "United States") %>%
+    filter(Item != "Personal Health Care (Millions of Dollars)")%>%
+    select(Item,starts_with("Y"))%>% 
+    pivot_longer(cols = starts_with("Y"),
+                 names_to= "year",
+                 values_to="Millions_of_Dollars")%>%
+    mutate(year = as.numeric(gsub("Y","",year)))%>%
+    mutate(Item = gsub(" +\\(.*\\)","",Item))
+```
+
+
+```{r plot code}
+# plot_ly plot code
+health_plot<- plot_ly() %>%
+    add_trace(data = mydata1,
+              x=~year,
+              y=~Millions_of_Dollars,
+              color=~Item,
+              text = ~Item,
+              colors = "Paired",
+              type = 'scatter', 
+              mode = 'lines+markers',
+              hovertemplate = paste(
+                  "<b>%{text}</b><br>",
+                  "%{y:,.0f} Millions USD<br>",
+                  "%{xaxis.title.text}: %{x}",
+                  "<extra></extra>"
+              ))%>%
+    layout(title = "Trend of Health Expenditure by Providers In USA",
+           xaxis = list(title="Year"),
+           yaxis = list(title="Millions of Dollars"),
+           hovermode = "x unified")%>%
+    layout(legend = list(orientation = 'h',x=0.1, y = -0.2))
+```
+
+## Plot
+```{r plot}
+health_plot
+```
+
